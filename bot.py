@@ -12,9 +12,10 @@ if not TOKEN:
         "DISCORD_TOKEN = <il tuo token>."
     )
 
-# Canale dove postare buongiorno/buonanotte in automatico. Facoltativo: se non
-# e' impostata, il bot parte comunque, solo senza i messaggi automatici (i
-# comandi /buongiorno e /buonanotte restano disponibili in ogni caso).
+# Canale dove postare i messaggi automatici (buongiorno/pranzo/buonanotte).
+# Facoltativo: se non e' impostata, il bot parte comunque, solo senza questi
+# messaggi (i comandi /goodmorning, /goodlunch, /goodnight restano disponibili
+# in ogni caso, digitandoli a mano).
 ANNOUNCE_CHANNEL_ID = os.environ.get("ANNOUNCE_CHANNEL_ID")
 ANNOUNCE_CHANNEL_ID = int(ANNOUNCE_CHANNEL_ID) if ANNOUNCE_CHANNEL_ID else None
 
@@ -22,6 +23,10 @@ ROME = ZoneInfo("Europe/Rome")
 MORNING_MESSAGE = (
     "\u2600\ufe0f **Good morning!** Another day to get lost in the pages of "
     "LuxComics & MedusaComics \u2014 happy reading, everyone! \U0001F4D6"
+)
+LUNCH_MESSAGE = (
+    "\U0001F37D\ufe0f **Enjoy your lunch, everyone!** Take a break, recharge, "
+    "and maybe sneak in a page or two before going back. \U0001F4D6"
 )
 NIGHT_MESSAGE = (
     "\U0001F319 **Good night, everyone** \u2014 may your dreams be as vivid as "
@@ -52,11 +57,13 @@ async def on_ready():
     if ANNOUNCE_CHANNEL_ID:
         if not morning_announcement.is_running():
             morning_announcement.start()
+        if not lunch_announcement.is_running():
+            lunch_announcement.start()
         if not night_announcement.is_running():
             night_announcement.start()
         print(f"Messaggi automatici attivi sul canale {ANNOUNCE_CHANNEL_ID}")
     else:
-        print("ANNOUNCE_CHANNEL_ID non impostata: solo i comandi /buongiorno e /buonanotte sono attivi, niente automatico.")
+        print("ANNOUNCE_CHANNEL_ID non impostata: solo i comandi /goodmorning, /goodlunch e /goodnight sono attivi, niente automatico.")
 
 
 @bot.tree.command(name="help", description="Show the SmallNox help menu.")
@@ -70,6 +77,7 @@ async def help_command(interaction: discord.Interaction):
             "\U0001F3B5 `/music` \u2014 Luxtify information\n"
             "\U0001F310 `/site` \u2014 Official website\n"
             "\u2600\ufe0f `/goodmorning` \u2014 Good morning message\n"
+            "\U0001F37D\ufe0f `/goodlunch` \u2014 Good lunch message\n"
             "\U0001F319 `/goodnight` \u2014 Good night message"
         ),
     )
@@ -108,6 +116,11 @@ async def goodmorning(interaction: discord.Interaction):
     await interaction.response.send_message(MORNING_MESSAGE)
 
 
+@bot.tree.command(name="goodlunch", description="Send the good lunch message.")
+async def goodlunch(interaction: discord.Interaction):
+    await interaction.response.send_message(LUNCH_MESSAGE)
+
+
 @bot.tree.command(name="goodnight", description="Send the good night message.")
 async def goodnight(interaction: discord.Interaction):
     await interaction.response.send_message(NIGHT_MESSAGE)
@@ -122,6 +135,13 @@ async def morning_announcement():
     channel = bot.get_channel(ANNOUNCE_CHANNEL_ID)
     if channel:
         await channel.send(MORNING_MESSAGE)
+
+
+@tasks.loop(time=datetime.time(hour=13, minute=0, tzinfo=ROME))
+async def lunch_announcement():
+    channel = bot.get_channel(ANNOUNCE_CHANNEL_ID)
+    if channel:
+        await channel.send(LUNCH_MESSAGE)
 
 
 @tasks.loop(time=datetime.time(hour=23, minute=0, tzinfo=ROME))
